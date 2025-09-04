@@ -23,7 +23,7 @@ import Config from "./config.js";
       // Check if all transactions have been converted.
       transactions = transactions.filter(
         (transaction) =>
-          !transaction.notes?.startsWith(`${Config.toCurrency}: `)
+          !transaction.notes?.includes(`${account.fromCurrency} @`)
       );
       if (transactions.length === 0) {
         console.log(
@@ -34,7 +34,7 @@ import Config from "./config.js";
       await exchange.getRates();
       for (let transaction of transactions) {
         // Skip transactions that have already been converted.
-        if (transaction.notes?.startsWith(`${Config.toCurrency}: `)) {
+        if (transaction.notes?.includes(`${account.fromCurrency} @`)) {
           continue;
         }
         // NOTE: values are in cents; rounded after conversion.
@@ -47,8 +47,12 @@ import Config from "./config.js";
           );
           continue;
         }
+        // Get the exchange rate used for conversion
+        const rate = exchange.getRate(transaction.date);
+        // Format the original and converted amounts for display (convert from cents to currency units)
+        const originalAmount = (Math.abs(transaction.amount) / 100).toFixed(2);
         await api.updateTransaction(transaction.id, {
-          notes: `${Config.toCurrency}: ` + transaction.notes,
+          notes: `${originalAmount} ${account.fromCurrency} @ ${rate.toFixed(2)}${transaction.notes ? ' • ' + transaction.notes : ''}`,
           amount: amount,
         });
         count++;
